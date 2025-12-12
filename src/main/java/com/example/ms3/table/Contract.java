@@ -1,5 +1,4 @@
 package com.example.ms3.table;
-import lol;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
