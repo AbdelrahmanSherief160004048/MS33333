@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Employees | HR Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* --- STYLES --- */
+    :root { --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --sidebar-width: 260px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+    body { background: #e0e5ec; min-height: 100vh; display: flex; overflow-x: hidden; }
+
+    /* Sidebar */
+    .sidebar { width: var(--sidebar-width); height: 100vh; background: white; border-right: 1px solid #ddd; padding: 30px 20px; position: fixed; display: flex; flex-direction: column; z-index: 10; }
+    .logo { font-size: 1.5rem; font-weight: 700; color: #764ba2; margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+    .nav-links { list-style: none; flex-grow: 1; }
+    .nav-links li { margin-bottom: 10px; }
+    .nav-links a { text-decoration: none; color: #666; display: flex; align-items: center; padding: 12px 15px; border-radius: 12px; font-weight: 500; transition: 0.3s; gap: 15px; }
+    .nav-links a:hover, .nav-links a.active { background: var(--primary-gradient); color: white; }
+
+    .main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); padding: 30px 40px; }
+
+    /* Table */
+    .table-container { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th { text-align: left; padding: 15px; color: #666; border-bottom: 2px solid #eee; font-size: 0.9rem; }
+    td { padding: 15px; border-bottom: 1px solid #eee; color: #333; vertical-align: middle; }
+
+    .action-btn { background: white; border: 1px solid #764ba2; color: #764ba2; cursor: pointer; padding: 6px 12px; border-radius: 6px; transition: 0.2s; font-size: 0.85rem; }
+    .action-btn:hover { background: #764ba2; color: white; }
+
+    .table-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; }
+
+    /* COMPLETENESS BAR */
+    .progress-wrapper { width: 100px; background: #eee; height: 8px; border-radius: 10px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+    .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+    .text-sm { font-size: 0.8rem; color: #666; }
+
+    /* MODAL */
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+    .modal-content { background: white; padding: 30px; border-radius: 15px; width: 500px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .close-modal { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; color: #999; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .btn-submit { width: 100%; background: var(--primary-gradient); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+
+    .img-preview-container { text-align: center; margin-bottom: 15px; }
+    .img-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #764ba2; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo"><i class="fas fa-shapes"></i> GUC HRMS</div>
+  <ul class="nav-links">
+    <li><a href="/hr-dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+    <li><a href="/employees" class="active"><i class="fas fa-users"></i> Manage Employees</a></li>
+    <li><a href="#"><i class="fas fa-building"></i> Departments</a></li>
+    <li><a href="/login?logout" style="color: red;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+  </ul>
+</div>
+
+<div class="main-content">
+  <h1 style="margin-bottom: 10px;">Employee Management</h1>
+  <p style="color:#666; margin-bottom: 30px;">View employee profiles and check completion status.</p>
+
+  <div class="table-container">
+    <table>
+      <thead>
+      <tr>
+        <th>Photo</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Profile Status</th> <!-- New Column -->
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody id="employeeTableBody">
+      <!-- JS Loads rows here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal()">&times;</span>
+    <h2 style="margin-bottom: 20px; color: #764ba2;">Edit Employee Profile</h2>
+
+    <form id="editForm">
+      <input type="hidden" name="id" id="editId">
+
+      <div class="img-preview-container">
+        <img id="previewImage" src="" class="img-preview" alt="Profile">
+        <br>
+        <label for="fileUpload" style="cursor: pointer; color: #764ba2; font-size: 0.9rem;">Change Photo</label>
+        <input type="file" id="fileUpload" accept="image/*" style="display: none;" onchange="previewFile()">
+      </div>
+
+      <div class="form-group"><label>First Name</label><input type="text" name="firstName" id="editFirstName" required></div>
+      <div class="form-group"><label>Last Name</label><input type="text" name="lastName" id="editLastName" required></div>
+      <div class="form-group"><label>Email</label><input type="email" name="email" id="editEmail" required></div>
+      <div class="form-group"><label>Phone</label><input type="text" name="phone" id="editPhone"></div>
+      <div class="form-group"><label>National ID</label><input type="text" name="nationalId" id="editNationalId"></div>
+      <div class="form-group">
+        <label>Role</label>
+        <select name="roleId" id="editRoleId">
+          <option value="7005">Employee</option>
+          <option value="7001">HR Admin</option>
+          <option value="7002">Line Manager</option>
+          <option value="7003">System Admin</option>
+          <option value="7004">Payroll Specialist</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-submit">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // 1. Load Data
+  async function loadEmployees() {
+    const tbody = document.getElementById('employeeTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>';
+
+    try {
+      const response = await fetch('/api/employees');
+
+      // Handle Database Errors (500)
+      if (!response.ok) throw new Error("Database Error. Check server logs.");
+
+      const employees = await response.json();
+      tbody.innerHTML = '';
+
+      if (employees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No employees found.</td></tr>';
+        return;
+      }
+
+      employees.forEach(emp => {
+        // --- A. CALCULATE COMPLETENESS ---
+        let score = 0;
+        let total = 5; // We track: First Name, Last Name, Phone, National ID, Photo
+
+        if(emp.firstName) score++;
+        if(emp.lastName) score++;
+        if(emp.phone && emp.phone.length > 5) score++;
+        if(emp.nationalId && emp.nationalId.length > 5) score++;
+        if(emp.profileImage) score++;
+
+        const percent = (score / total) * 100;
+
+        // Color coding
+        let color = '#e74c3c'; // Red
+        if(percent >= 60) color = '#f1c40f'; // Yellow
+        if(percent === 100) color = '#2ecc71'; // Green
+
+        // --- B. ROLE NAME ---
+        let roleName = "Employee";
+        if (emp.roleId == 7001) roleName = "HR Admin";
+        if (emp.roleId == 7002) roleName = "Manager";
+
+        // --- C. AVATAR ---
+        const avatarSrc = emp.profileImage || 'https://via.placeholder.com/40';
+        const empData = JSON.stringify(emp).replace(/'/g, "&apos;");
+
+        tbody.innerHTML += `
+          <tr>
+            <td><img src="${avatarSrc}" class="table-avatar"></td>
+            <td>${emp.firstName} ${emp.lastName}</td>
+            <td>${emp.email}</td>
+            <td>${roleName}</td>
+            <td style="width: 200px;">
+              <div class="progress-wrapper">
+                <div class="progress-fill" style="width: ${percent}%; background: ${color};"></div>
+              </div>
+              <span class="text-sm">${percent}%</span>
+            </td>
+            <td>
+              <button class="action-btn" onclick='openEditModal(${empData})'>
+                <i class="fas fa-edit"></i> Edit
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+    } catch (error) {
+      console.error(error);
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">${error.message}</td></tr>`;
+    }
+  }
+
+  // 2. Open Modal
+  function openEditModal(emp) {
+    document.getElementById('editId').value = emp.id;
+    document.getElementById('editFirstName').value = emp.firstName || "";
+    document.getElementById('editLastName').value = emp.lastName || "";
+    document.getElementById('editEmail').value = emp.email || "";
+    document.getElementById('editPhone').value = emp.phone || "";
+    document.getElementById('editNationalId').value = emp.nationalId || "";
+    document.getElementById('editRoleId').value = emp.roleId || 7005;
+    document.getElementById('previewImage').src = emp.profileImage || 'https://via.placeholder.com/100';
+    document.getElementById('editModal').style.display = "flex";
+  }
+
+  function closeModal() { document.getElementById('editModal').style.display = "none"; }
+  window.onclick = function(e) { if(e.target == document.getElementById("editModal")) closeModal(); }
+
+  // 3. Image Handling
+  let newProfileImageBase64 = null;
+  function previewFile() {
+    const file = document.getElementById('fileUpload').files[0];
+    const preview = document.getElementById('previewImage');
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = function() { preview.src = reader.result; newProfileImageBase64 = reader.result; }
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // 4. Submit Form
+  document.getElementById('editForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    try {
+      const res = await fetch('/api/employees/update', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error("Update Failed");
+
+      if (newProfileImageBase64) {
+        await fetch('/api/employees/upload-photo', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ id: data.id, image: newProfileImageBase64 })
+        });
+        newProfileImageBase64 = null;
+      }
+      alert("Updated!");
+      closeModal();
+      loadEmployees();
+    } catch (err) { alert(err.message); }
+  });
+
+  loadEmployees();
+</script>
+
+</body>
+</html>
