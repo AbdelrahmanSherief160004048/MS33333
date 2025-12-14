@@ -41,7 +41,11 @@ public class SecurityConfig {
                                 "/api/manager/**",
                                 "/profile",
                                 "/api/employees/**",
-                                "/api/contracts/**"   // <--- I ADDED THIS LINE FOR YOU
+                                "/api/contracts/**",
+
+                                // --- ADDED LINES FOR LEAVES & UPLOADS ---
+                                "/api/leaves/**",
+                                "/uploads/**"
                         ).permitAll()
 
                         // 5. Block everything else
@@ -61,4 +65,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-}   
+}

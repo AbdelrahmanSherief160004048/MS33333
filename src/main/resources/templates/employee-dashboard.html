@@ -42,8 +42,6 @@
       align-items: center;
       gap: 12px;
     }
-    .logo i { font-size: 1.8rem; }
-
     .nav-links { list-style: none; flex-grow: 1; }
     .nav-links li { margin-bottom: 8px; }
     .nav-links a {
@@ -58,15 +56,11 @@
       gap: 15px;
       font-size: 0.95rem;
     }
-    .nav-links a i { width: 20px; text-align: center; }
-
-    /* Active State styling */
     .nav-links a:hover, .nav-links a.active {
       background: var(--primary-gradient);
       color: white;
       box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
     }
-
     .logout-btn {
       margin-top: auto;
       text-decoration: none;
@@ -87,12 +81,8 @@
       padding: 30px 50px;
     }
 
-    /* HEADER */
+    /* HEADER & CLOCK */
     .header-info { margin-bottom: 25px; }
-    .header-info h1 { font-size: 1.8rem; margin-bottom: 5px; }
-    .header-info p { color: var(--text-gray); font-size: 0.95rem; }
-
-    /* CLOCK IN BANNER */
     .clock-banner {
       background: var(--primary-gradient);
       border-radius: 20px;
@@ -106,17 +96,7 @@
       position: relative;
       overflow: hidden;
     }
-    /* Decorative circle overlay */
-    .clock-banner::before {
-      content: ''; position: absolute; top: -50px; right: -50px;
-      width: 200px; height: 200px; background: rgba(255,255,255,0.1);
-      border-radius: 50%;
-    }
-
     .clock-time h2 { font-size: 2.5rem; font-weight: 700; margin-bottom: 5px; }
-    .clock-time p { opacity: 0.9; font-size: 0.95rem; }
-    .clock-time .status { margin-top: 5px; font-weight: 600; display: block; }
-
     .clock-btn {
       background: white;
       color: var(--primary-color);
@@ -124,17 +104,15 @@
       padding: 12px 25px;
       border-radius: 30px;
       font-weight: 600;
-      font-size: 1rem;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
       transition: transform 0.2s;
-      z-index: 1;
     }
     .clock-btn:hover { transform: scale(1.05); }
 
-    /* STATS CARDS */
+    /* STATS GRID */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -161,10 +139,7 @@
     .icon-blue { background: #dff9fb; color: #0984e3; }
     .icon-red { background: #ff767520; color: #d63031; }
 
-    .stat-info h3 { font-size: 1.5rem; color: var(--text-dark); }
-    .stat-info p { font-size: 0.85rem; color: var(--text-gray); margin-top: 2px; }
-
-    /* REQUESTS TABLE */
+    /* TABLE */
     .table-container {
       background: white;
       border-radius: 20px;
@@ -187,17 +162,41 @@
       font-size: 0.9rem;
       display: flex; align-items: center; gap: 8px;
     }
-
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; color: var(--text-gray); font-weight: 600; padding: 15px; font-size: 0.9rem; border-bottom: 1px solid #eee; }
     td { padding: 15px; border-bottom: 1px solid #f5f5f5; color: var(--text-dark); font-size: 0.95rem; }
-    tr:last-child td { border-bottom: none; }
 
-    /* STATUS BADGES */
+    /* BADGES */
     .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
-    .badge-pending { background: var(--warning-bg); color: var(--warning-text); }
-    .badge-approved { background: var(--success-bg); color: var(--success-text); }
-    .badge-rejected { background: var(--danger-bg); color: var(--danger-text); }
+    .badge-Pending { background: var(--warning-bg); color: var(--warning-text); }
+    .badge-Approved { background: var(--success-bg); color: var(--success-text); }
+    .badge-Rejected { background: var(--danger-bg); color: var(--danger-text); }
+
+    /* MODAL */
+    .modal {
+      display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+      width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+      justify-content: center; align-items: center;
+    }
+    .modal-content {
+      background: white; padding: 30px; border-radius: 15px;
+      width: 500px; max-width: 90%;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 0.95rem;
+    }
+    .close-modal { float: right; font-size: 24px; cursor: pointer; color: #aaa; transition: 0.2s; }
+    .close-modal:hover { color: #e74c3c; }
+
+    .btn-submit {
+      width: 100%; background: var(--primary-gradient); color: white; border: none;
+      padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px;
+    }
 
   </style>
 </head>
@@ -211,7 +210,8 @@
   <ul class="nav-links">
     <li><a href="#" class="active"><i class="fas fa-home"></i> Home</a></li>
     <li><a href="/profile"><i class="fas fa-user-circle"></i> My Profile</a></li>
-    <li><a href="/leaves"><i class="fas fa-calendar-check"></i> Leave Request</a></li>
+    <!-- Clicking this opens the modal -->
+    <li><a href="#" onclick="openModal()"><i class="fas fa-calendar-check"></i> Leave Request</a></li>
     <li><a href="/payslips"><i class="fas fa-file-invoice-dollar"></i> My Payslips</a></li>
     <li><a href="/missions"><i class="fas fa-plane"></i> Missions</a></li>
   </ul>
@@ -240,92 +240,179 @@
 
   <!-- STATS GRID -->
   <div class="stats-grid">
-    <!-- Leaves -->
     <div class="stat-card">
       <div class="icon-box icon-orange"><i class="fas fa-umbrella-beach"></i></div>
-      <div class="stat-info">
-        <h3>0</h3>
-        <p>Days Leave Left</p>
-      </div>
+      <div class="stat-info"><h3>12</h3><p>Days Leave Left</p></div>
     </div>
-    <!-- Missions -->
     <div class="stat-card">
       <div class="icon-box icon-purple"><i class="fas fa-briefcase"></i></div>
-      <div class="stat-info">
-        <h3>0</h3>
-        <p>Active Missions</p>
-      </div>
+      <div class="stat-info"><h3>2</h3><p>Active Missions</p></div>
     </div>
-    <!-- Contract -->
     <div class="stat-card">
       <div class="icon-box icon-blue"><i class="fas fa-file-contract"></i></div>
-      <div class="stat-info">
-        <h3>-</h3>
-        <p>Contract Status</p>
-      </div>
+      <div class="stat-info"><h3>Full Time</h3><p>Contract Status</p></div>
     </div>
-    <!-- Warnings -->
     <div class="stat-card">
       <div class="icon-box icon-red"><i class="fas fa-exclamation-circle"></i></div>
-      <div class="stat-info">
-        <h3>0</h3>
-        <p>Warnings</p>
-      </div>
+      <div class="stat-info"><h3>0</h3><p>Warnings</p></div>
     </div>
   </div>
 
   <!-- RECENT REQUESTS TABLE -->
   <div class="table-container">
     <div class="table-header">
-      <h2>My Recent Requests</h2>
-      <button class="btn-primary"><i class="fas fa-plus"></i> Request Leave</button>
+      <h2>My Leave Requests</h2>
+      <button class="btn-primary" onclick="openModal()"><i class="fas fa-plus"></i> Request Leave</button>
     </div>
     <table>
       <thead>
       <tr>
-        <th>Request ID</th>
-        <th>Type</th>
-        <th>Dates</th>
+        <th>Leave Type</th>
+        <th>Duration</th>
+        <th>Reason</th>
+        <th>Attachment</th>
         <th>Status</th>
-        <th>Manager Note</th>
       </tr>
       </thead>
       <tbody id="requestsTableBody">
-      <!-- Rows will be injected here via JS, or keep empty for now -->
-      <tr>
-        <td colspan="5" style="text-align:center; color:#999; padding:30px;">
-          No recent requests found.
-        </td>
-      </tr>
+      <!-- JS WILL INJECT ROWS HERE -->
+      <tr><td colspan="5" style="text-align:center; padding:30px;">Loading...</td></tr>
       </tbody>
     </table>
   </div>
 
 </div>
 
+<!-- === LEAVE REQUEST MODAL === -->
+<div id="leaveModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal()">&times;</span>
+    <h2 style="color: var(--primary-color); margin-bottom: 20px;">New Leave Request</h2>
+
+    <form id="leaveForm">
+      <!-- 1. Leave Type (Dropdown) -->
+      <div class="form-group">
+        <label>Leave Type</label>
+        <select name="leaveId" id="leaveTypeSelect" required>
+          <option value="">Loading types...</option>
+        </select>
+      </div>
+
+      <!-- 2. Dates (Start & End) -->
+      <div style="display: flex; gap: 15px;">
+        <div class="form-group" style="flex:1;">
+          <label>Start Date</label>
+          <input type="date" name="startDate" required>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>End Date</label>
+          <input type="date" name="endDate" required>
+        </div>
+      </div>
+
+      <!-- 3. Justification -->
+      <div class="form-group">
+        <label>Reason / Justification</label>
+        <textarea name="justification" rows="3" placeholder="Please explain why..." required></textarea>
+      </div>
+
+      <!-- 4. Attachment (File) -->
+      <div class="form-group">
+        <label>Attachment (Optional)</label>
+        <input type="file" name="file" accept=".pdf,.jpg,.png,.doc,.docx">
+      </div>
+
+      <button type="submit" class="btn-submit">Submit Request</button>
+    </form>
+  </div>
+</div>
+
 <script>
-  // 1. Live Clock Function
+  // --- CONFIG ---
+  const userId = localStorage.getItem("userId") || 1;
+  const modal = document.getElementById("leaveModal");
+
+  // --- CLOCK ---
   function updateClock() {
     const now = new Date();
-    // Time format: 11:38 PM
-    const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    // Date format: Dec 10, 2025 | Wednesday
-    const dateOptions = { month: 'short', day: '2-digit', year: 'numeric', weekday: 'long' };
-    const dateString = now.toLocaleDateString('en-US', dateOptions).replace(',', ' |');
-
-    document.getElementById('clockTime').innerText = timeString;
-    document.getElementById('clockDate').innerText = dateString;
+    document.getElementById('clockTime').innerText = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('clockDate').innerText = now.toLocaleDateString('en-US', {month:'short', day:'2-digit', year:'numeric', weekday:'long'});
   }
-  setInterval(updateClock, 1000);
-  updateClock(); // Initial call
+  setInterval(updateClock, 1000); updateClock();
 
-  // 2. Fetch User Data (Simulated for this file, you connect to API)
-  const userId = localStorage.getItem("userId");
+  // --- MODAL & DROPDOWN ---
+  function openModal() { modal.style.display = "flex"; loadLeaveTypes(); }
+  function closeModal() { modal.style.display = "none"; }
+  window.onclick = function(e) { if(e.target == modal) closeModal(); }
 
-  if(userId) {
-    // Example: fetch(`/api/employees/${userId}`)...
-    // For now, we update the Welcome message if we had data
+  // Load Dropdown Options
+  async function loadLeaveTypes() {
+    const select = document.getElementById("leaveTypeSelect");
+    if(select.options.length > 1) return;
+
+    try {
+      const res = await fetch('/api/leaves/types');
+      if(res.ok) {
+        const types = await res.json();
+        select.innerHTML = '<option value="">Select Type...</option>';
+        types.forEach(t => select.innerHTML += `<option value="${t.leaveId}">${t.leaveType}</option>`);
+      }
+    } catch (err) { console.error("Error loading types", err); }
   }
+
+  // --- SUBMIT FORM ---
+  document.getElementById("leaveForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.append("employeeId", userId);
+
+    try {
+      const response = await fetch("/api/leaves/submit", { method: "POST", body: formData });
+      if(response.ok) {
+        alert("Leave request submitted!");
+        this.reset();
+        closeModal();
+        loadRequests(); // Refresh table
+      } else {
+        const msg = await response.text();
+        alert("Error: " + msg);
+      }
+    } catch (err) { alert("Network error"); }
+  });
+
+  // --- LOAD HISTORY TABLE ---
+  async function loadRequests() {
+    const tbody = document.getElementById("requestsTableBody");
+    try {
+      const res = await fetch(`/api/leaves/my-requests/${userId}`);
+      const requests = await res.json();
+      tbody.innerHTML = "";
+
+      if(requests.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#999;">No requests found.</td></tr>`;
+        return;
+      }
+
+      requests.forEach(req => {
+        // Create file link
+        const attachmentHtml = req.filePath
+                ? `<a href="${req.filePath}" target="_blank" style="color:var(--primary-color)"><i class="fas fa-paperclip"></i> View</a>`
+                : '<span style="color:#ccc">None</span>';
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-weight:600;">${req.leaveType}</td>
+            <td>${req.duration} Days</td>
+            <td>${req.justification}</td>
+            <td>${attachmentHtml}</td>
+            <td><span class="badge badge-${req.status}">${req.status}</span></td>
+          </tr>`;
+      });
+    } catch (err) { tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error loading data.</td></tr>`; }
+  }
+
+  // Initial Load
+  loadRequests();
 </script>
 
 </body>
