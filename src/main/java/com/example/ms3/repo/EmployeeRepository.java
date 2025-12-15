@@ -4,7 +4,6 @@ import com.example.ms3.table.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,81 +16,77 @@ import java.util.Optional;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
 
-    // --- 1. LOGIN & VALIDATION ---
+    // --- Basic Finders ---
     Optional<Employee> findByEmail(String email);
 
     boolean existsByEmail(String email);
 
-    // Fetch Role ID directly (Native Query for speed)
-    @Query(value = "SELECT TOP 1 role_id FROM dbo.Employee_Role WHERE employee_id = :employeeId", nativeQuery = true)
-    Integer findRoleIdByEmployeeId(Integer employeeId);
+    // --- Native Queries ---
 
-    // --- 2. SIGN UP (Stored Procedure) ---
-    @Transactional
-    @Procedure(procedureName = "CreateEmployeeProfile")
-    void createEmployeeProfile(
-            @Param("FirstName") String firstName,
-            @Param("LastName") String lastName,
-            @Param("DepartmentID") Integer departmentId,
-            @Param("RoleID") Integer roleId,
-            @Param("HireDate") LocalDate hireDate,
-            @Param("Email") String email,
-            @Param("Phone") String phone,
-            @Param("NationalID") String nationalId,
-            @Param("DateOfBirth") LocalDate dateOfBirth,
-            @Param("CountryOfBirth") String countryOfBirth,
-            @Param("Password") String password
-    );
+    @Query(value = "SELECT role_id FROM Employee_Role WHERE employee_id = :id", nativeQuery = true)
+    Integer findRoleIdByEmployeeId(@Param("id") Integer id);
 
-    // --- 3. FETCH DATA ---
-    // Get all employees with their Role ID joined
+    @Query(value = "SELECT * FROM Employee WHERE manager_id = :managerId", nativeQuery = true)
+    List<Employee> findByManagerId(@Param("managerId") Integer managerId);
+
+    // Fetches all employees with their role/contract info (Used in HR dashboard)
     @Query(value = """
-            SELECT e.employee_id AS id, 
-                   e.first_name AS firstName, 
-                   e.last_name AS lastName, 
-                   e.email AS email, 
-                   e.national_id AS nationalId, 
-                   r.role_id AS roleId, 
-                   e.password AS password, 
-                   e.profile_image AS profileImage, 
-                   e.phone AS phone,
-                   -- NEW COLUMNS FOR CONTRACT STATUS --
-                   c.contract_id AS contractId,
-                   c.end_date AS contractEndDate,
-                   p.position_title AS positionTitle
-            FROM dbo.Employee e 
-            LEFT JOIN dbo.Employee_Role r ON e.employee_id = r.employee_id
-            LEFT JOIN dbo.Contract c ON e.contract_id = c.contract_id
-            LEFT JOIN dbo.Position p ON e.position_id = p.position_id
-            """, nativeQuery = true)
+        SELECT 
+            e.employee_id AS id, 
+            e.first_name AS firstName, 
+            e.last_name AS lastName, 
+            e.email AS email, 
+            e.national_id AS nationalId, 
+            e.phone AS phone,
+            e.profile_image AS profileImage,
+            r.role_id AS roleId,
+            c.contract_id AS contractId,
+            c.end_date AS contractEndDate,
+            p.position_title AS positionTitle
+        FROM Employee e
+        LEFT JOIN Employee_Role r ON e.employee_id = r.employee_id
+        LEFT JOIN Contract c ON e.contract_id = c.contract_id
+        LEFT JOIN Position p ON e.position_id = p.position_id
+    """, nativeQuery = true)
     List<Map<String, Object>> findAllEmployeesWithRoles();
 
-    // Get employees for a specific manager
-    @Query(value = "SELECT * FROM dbo.Employee WHERE manager_id = :managerId", nativeQuery = true)
-    List<Employee> findByManagerId(Integer managerId);
+    // --- Modifications (Updates/Inserts) ---
 
-    // --- 4. UPDATES ---
-
-    // Update Role
+    // 1. Create Profile (Used in SignUp Service)
     @Modifying
     @Transactional
-    @Query(value = "UPDATE dbo.Employee_Role SET role_id = :roleId WHERE employee_id = :employeeId", nativeQuery = true)
-    void updateEmployeeRole(Integer employeeId, Integer roleId);
+    @Query(value = "INSERT INTO Employee (first_name, last_name, department_id, hire_date, email, phone, national_id, date_of_birth, country_of_birth, password) " +
+            "VALUES (:fname, :lname, :deptId, :hireDate, :email, :phone, :nid, :dob, :country, :pass); " +
+            "INSERT INTO Employee_Role (employee_id, role_id) VALUES ((SELECT MAX(employee_id) FROM Employee), :roleId)", nativeQuery = true)
+    void createEmployeeProfile(
+            @Param("fname") String fname,
+            @Param("lname") String lname,
+            @Param("deptId") Integer deptId,
+            @Param("roleId") Integer roleId,
+            @Param("hireDate") LocalDate hireDate,
+            @Param("email") String email,
+            @Param("phone") String phone,
+            @Param("nid") String nid,
+            @Param("dob") LocalDate dob,
+            @Param("country") String country,
+            @Param("pass") String pass
+    );
 
-    // Update Profile Image
+    // 2. Update Role
     @Modifying
     @Transactional
-    @Query(value = "UPDATE dbo.Employee SET profile_image = :imageData WHERE employee_id = :id", nativeQuery = true)
-    void updateProfileImage(Integer id, String imageData);
+    @Query(value = "UPDATE Employee_Role SET role_id = :roleId WHERE employee_id = :empId", nativeQuery = true)
+    void updateEmployeeRole(@Param("empId") Integer empId, @Param("roleId") Integer roleId);
 
-    // --- 5. CONTRACT & JOB DETAILS (CRITICAL FIX) ---
-    // This updates the Foreign Keys in the Employee table to link to the new Contract/Position
+    // 3. Update Profile Image
     @Modifying
     @Transactional
-    @Query(value = "UPDATE dbo.Employee " +
-            "SET contract_id = :contractId, " +
-            "    position_id = :positionId, " +
-            "    salary_type_id = :salaryTypeId " +
-            "WHERE employee_id = :employeeId", nativeQuery = true)
-    void updateEmployeeJobDetails(Integer employeeId, Integer contractId, Integer positionId, Integer salaryTypeId);
+    @Query(value = "UPDATE Employee SET profile_image = :image WHERE employee_id = :id", nativeQuery = true)
+    void updateProfileImage(@Param("id") Integer id, @Param("image") String image);
+
+    // 4. NEW: Add Employee To Manager's Team
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE Employee SET manager_id = :managerId WHERE employee_id = :employeeId", nativeQuery = true)
+    void addEmployeeToTeam(@Param("managerId") Integer managerId, @Param("employeeId") Integer employeeId);
 }

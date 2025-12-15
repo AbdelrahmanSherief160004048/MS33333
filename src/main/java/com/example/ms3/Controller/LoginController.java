@@ -1,5 +1,6 @@
 package com.example.ms3.Controller;
 
+import com.example.ms3.dto.AddTeamRequestDTO; // Make sure you created this DTO class!
 import com.example.ms3.dto.ContractRequestDTO;
 import com.example.ms3.dto.RegisterRequestDTO;
 import com.example.ms3.exceptions.UserAlreadyExistsException;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,7 +47,7 @@ public class LoginController {
     // --- VIEW ROUTE FOR MANAGER TEAM ---
     @GetMapping("/manager/team")
     public String showManagerTeamPage() {
-        return "my-team"; // This matches the filename 'my-team.html'
+        return "my-team";
     }
 
     @GetMapping("/hr-dashboard") public String hrAdminDashboard() { return "hr-dashboard"; }
@@ -171,34 +171,22 @@ public class LoginController {
     @ResponseBody
     public ResponseEntity<?> saveContract(@RequestBody ContractRequestDTO request) {
         try {
-            // Check if we are UPDATING (Renewing) based on presence of Contract ID
+            // Check if we are UPDATING (Renewing)
             if (request.getContractId() != null && request.getContractId() > 0) {
-
-                System.out.println(">>> CALLING PROC: RenewContract (ID: " + request.getContractId() + ")");
-
-                // Calls your Proc --2.2
                 contractRepository.renewContractProc(
                         request.getContractId(),
-                        request.getEndDate() // Your Renew proc only takes End Date
+                        request.getEndDate()
                 );
-
                 return ResponseEntity.ok("Contract renewed successfully!");
-
             } else {
-
-                System.out.println(">>> CALLING PROC: CreateContract (New)");
-
-                // Calls your Proc --2.1
                 contractRepository.createContractProc(
                         request.getEmployeeId(),
                         request.getContractType(),
                         request.getStartDate(),
                         request.getEndDate()
                 );
-
                 return ResponseEntity.ok("New Contract created successfully!");
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
@@ -210,5 +198,29 @@ public class LoginController {
     @ResponseBody
     public ResponseEntity<?> getManagerTeam(@PathVariable Integer managerId) {
         return ResponseEntity.ok(employeeRepository.findByManagerId(managerId));
+    }
+
+    // --- F. ADD TO TEAM (NEW) ---
+    @PostMapping("/api/manager/add-to-team")
+    @ResponseBody
+    public ResponseEntity<?> addEmployeeToTeam(@RequestBody AddTeamRequestDTO request) {
+        try {
+            // 1. Check if manager exists
+            if (!employeeRepository.existsById(request.getManagerId())) {
+                return ResponseEntity.badRequest().body("Manager not found");
+            }
+            // 2. Check if employee exists
+            if (!employeeRepository.existsById(request.getEmployeeId())) {
+                return ResponseEntity.badRequest().body("Employee not found");
+            }
+
+            // 3. Perform the update
+            employeeRepository.addEmployeeToTeam(request.getManagerId(), request.getEmployeeId());
+
+            return ResponseEntity.ok("Employee added to team successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 }
