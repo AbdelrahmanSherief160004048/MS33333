@@ -64,7 +64,6 @@
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; padding: 15px; color: #666; font-size: 0.9rem; border-bottom: 2px solid #eee; }
     td { padding: 15px; border-bottom: 1px solid #eee; color: #333; font-size: 0.95rem; }
-    .status { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
     .empty-state { text-align: center; color: #888; padding: 20px; font-style: italic; }
   </style>
 </head>
@@ -79,7 +78,6 @@
   <div class="logo"><i class="fas fa-briefcase"></i> GUC HRMS</div>
   <ul class="nav-links">
     <li><a href="#" class="active"><i class="fas fa-home"></i> Overview</a></li>
-    <!-- UPDATED LINK -->
     <li><a href="/manager/team"><i class="fas fa-users"></i> My Team</a></li>
     <li><a href="#"><i class="fas fa-check-circle"></i> Approvals</a></li>
     <li><a href="#"><i class="fas fa-calendar-alt"></i> Shifts</a></li>
@@ -103,7 +101,7 @@
     </div>
   </div>
 
-  <!-- KPI CARDS (Static placeholders for now) -->
+  <!-- KPI CARDS -->
   <div class="stats-grid">
     <div class="card">
       <div class="card-icon icon-blue"><i class="fas fa-users"></i></div>
@@ -125,7 +123,7 @@
 
   <div class="dashboard-split">
 
-    <!-- LEFT: TEAM ATTENDANCE (Empty) -->
+    <!-- LEFT: TEAM ATTENDANCE (Placeholder) -->
     <div class="content-box">
       <div class="section-header">
         <h2>Team Attendance (Today)</h2>
@@ -140,19 +138,18 @@
         </tr>
         </thead>
         <tbody>
-        <!-- Empty State -->
         <tr><td colspan="4" class="empty-state">No attendance records for today.</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- RIGHT: APPROVALS (Empty) -->
+    <!-- RIGHT: APPROVALS (Dynamic Content) -->
     <div class="content-box">
       <div class="section-header">
         <h2>Approvals Needed</h2>
       </div>
-      <div id="approvalList">
-        <p class="empty-state">No pending approvals.</p>
+      <div id="approvalList" style="display: flex; flex-direction: column; gap: 15px;">
+        <p class="empty-state">Loading pending requests...</p>
       </div>
     </div>
 
@@ -160,22 +157,159 @@
 </div>
 
 <script>
-  // Load Team Count on Dashboard Load
+  // --- DASHBOARD INITIALIZATION ---
   async function initDashboard() {
     const managerId = localStorage.getItem("userId");
-    if(managerId) {
-      try {
-        // Fetch team just to get the count
-        const response = await fetch(`/api/manager/${managerId}/team`);
-        if(response.ok) {
-          const team = await response.json();
-          document.getElementById('teamCount').innerText = team.length;
-        }
-      } catch(e) {
-        console.error("Could not load stats");
+
+    if(!managerId) {
+      alert("You are not logged in!");
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      // 1. Fetch Team Count
+      const teamResponse = await fetch(`/api/manager/${managerId}/team`);
+      if(teamResponse.ok) {
+        const team = await teamResponse.json();
+        document.getElementById('teamCount').innerText = team.length;
       }
+
+      // 2. Fetch Pending Leave Requests
+      fetchPendingRequests(managerId);
+
+    } catch(e) {
+      console.error("Dashboard Load Error:", e);
     }
   }
+
+  // --- FETCH PENDING REQUESTS ---
+  async function fetchPendingRequests(managerId) {
+    try {
+      const leaveResponse = await fetch(`/api/leaves/manager/${managerId}/pending`);
+
+      if(leaveResponse.ok) {
+        const requests = await leaveResponse.json();
+        const listContainer = document.getElementById('approvalList');
+        listContainer.innerHTML = "";
+
+        // Update KPI
+        document.querySelector('.icon-yellow').nextElementSibling.querySelector('h3').innerText = requests.length;
+
+        if(requests.length === 0) {
+          listContainer.innerHTML = '<p class="empty-state">No pending approvals.</p>';
+          return;
+        }
+
+        requests.forEach(req => {
+          // --- FLAGGING LOGIC ---
+          const isFlagged = req.isFlagged === true;
+          const borderColor = isFlagged ? '#e67e22' : '#f6d365';
+          const flagStatus = isFlagged ? '<br><span style="color:#e67e22; font-weight:bold; font-size:0.75rem;"><i class="fas fa-exclamation-triangle"></i> Flagged: Irregular Pattern</span>' : '';
+
+          const card = document.createElement('div');
+          card.style.cssText = `
+            background: rgba(255,255,255,0.5);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid ${borderColor};
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+          `;
+
+          card.innerHTML = `
+            <div>
+              <h4 style="margin-bottom: 4px; color: #333;">${req.employeeName}</h4>
+              <p style="font-size: 0.85rem; color: #666;">
+                <span style="font-weight:600">${req.leaveType}</span> • ${req.duration} Days
+              </p>
+              <p style="font-size: 0.8rem; color: #888; font-style: italic; margin-top: 2px;">"${req.justification}"${flagStatus}</p>
+            </div>
+            <div style="display:flex; gap: 8px;">
+              <!-- Flag Button -->
+              <button onclick="handleFlag(${req.requestId})"
+                      title="Flag as Irregular"
+                      style="background: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+                <i class="fas fa-exclamation-triangle"></i>
+              </button>
+
+              <!-- Approve Button -->
+              <button onclick="handleAction(${req.requestId}, 'Approve')"
+                      title="Approve"
+                      style="background: #27ae60; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+                <i class="fas fa-check"></i>
+              </button>
+
+              <!-- Reject Button -->
+              <button onclick="handleAction(${req.requestId}, 'Reject')"
+                      title="Reject"
+                      style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          `;
+          listContainer.appendChild(card);
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching requests", e);
+    }
+  }
+
+  // --- HANDLE APPROVE / REJECT ---
+  async function handleAction(requestId, action) {
+    if(!confirm(`Are you sure you want to ${action} this request?`)) return;
+
+    const formData = new FormData();
+    formData.append("requestId", requestId);
+    formData.append("action", action);
+
+    try {
+      const response = await fetch('/api/leaves/review', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const managerId = localStorage.getItem("userId");
+        fetchPendingRequests(managerId); // Refresh list
+      } else {
+        const err = await response.text();
+        alert("Error updating status: " + err);
+      }
+    } catch (e) {
+      console.error("Action failed:", e);
+    }
+  }
+
+  // --- HANDLE FLAG ---
+  async function handleFlag(requestId) {
+    if(!confirm("Flag this request as an irregular pattern?")) return;
+
+    const formData = new FormData();
+    formData.append("requestId", requestId);
+
+    try {
+      const response = await fetch('/api/leaves/flag', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        alert("Request Flagged!");
+        const managerId = localStorage.getItem("userId");
+        fetchPendingRequests(managerId); // Refresh list
+      } else {
+        const err = await response.text();
+        alert("Error flagging request: " + err);
+      }
+    } catch (e) {
+      console.error("Flag failed:", e);
+    }
+  }
+
   initDashboard();
 </script>
 
