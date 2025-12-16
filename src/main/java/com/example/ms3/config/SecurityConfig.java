@@ -42,10 +42,9 @@ public class SecurityConfig {
                                 "/profile",
                                 "/api/employees/**",
                                 "/api/contracts/**",
-
-                                // --- ADDED LINES FOR LEAVES & UPLOADS ---
                                 "/api/leaves/**",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/api/shifts/**"
                         ).permitAll()
 
                         // 5. Block everything else
